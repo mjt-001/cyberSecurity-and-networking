@@ -1,27 +1,68 @@
-# Project 1: Secure Coffee Shop SOHO Network Architecture
+# Secure SOHO Branch Network Architecture & Segmentation
 
-## Executive Summary
+![Architecture Diagram](assets/coffeeShopNetwork.png)
 
-This project delivers a complete SOHO (Small Office/Home Office) network architecture for a commercial coffee shop using Cisco Packet Tracer. The design implements dynamic IP addressing via Cisco IOS DHCP, Router-on-a-Stick (ROAS) inter-VLAN routing, and 802.1Q trunking. Network security is enforced through custom extended Access Control Lists (ACLs) that isolate point-of-sale (POS) systems and management infrastructure from public guest Wi-Fi traffic while permitting unrestricted internet access.
+## Executive Summary & Business Rationale
+This project demonstrates the design and implementation of a segmented SOHO (Small Office/Home Office) branch network for a retail coffee shop environment. 
 
-## Network Architecture & Key Features
+The primary business objective is to balance open customer connectivity with strict operational security. Using vendor-neutral network engineering principles, the architecture isolates Point-of-Sale (POS) payment processing and local network management from public guest Wi-Fi, satisfying security baseline requirements (such as PCI-DSS data isolation principles).
 
-- **Multi-VLAN Segmentation:** Segregates administrative management, operational POS terminals, and customer wireless devices into distinct layer 2 broadcast domains.
-- **Router-on-a-Stick Inter-VLAN Routing:** Utilizes 802.1Q encapsulation subinterfaces on R1-Gateway for centralized traffic routing across VLANs.
-- **Automated Address Assignment:** Features dedicated Cisco IOS DHCP address pools per subnet for seamless client onboardings.
-- **Guest Traffic Isolation:** Applies inbound extended ACLs at the gateway boundary to enforce strict PCI-DSS-aligned traffic separation.
+---
 
-## IP Addressing & Subnetting Plan (VLSM)
+## Network+ Technical Domain Mapping
 
-| Network / Function | VLAN ID | Subnet / CIDR  | Subnet Mask | Usable Host Range | Default Gateway | Purpose |
-| -------- | -------- | -------- | -------- | -------- | -------- | -------- |
-| Management / Native | 10     | 192.168.1.0/27     | 255.255.255.224     | 192.168.1.2 - 192.168.1.30     | 192.168.1.1     | Switch SVI, AP IP, Router Subinterface     |
-| Staff & POS Network    | 20     | 192.168.1.32/27     | 255.255.255.224     | 192.168.1.34 - 192.168.1.62     | 192.168.1.33     | Registers, Manager PC, Staff Workstations     |
-| Guest Wi-Fi Network    | 30     | 192.168.1.64/26     | 255.255.255.192     | 192.168.1.66 - 192.168.1.126     | 192.168.1.65     | Public Laptops, Tablets, Smartphones     |
+| Network+ Domain | Applied Project Implementation |
+| :--- | :--- |
+| **1.0 Networking Concepts** | VLSM Subnetting, IPv4 addressing, 802.1Q VLAN Tagging, CIDR calculation |
+| **2.0 Network Implementation** | Router-on-a-Stick inter-VLAN routing, dynamic IP allocation (DHCP Server), Access/Trunk port roles |
+| **3.0 Network Operations** | Infrastructure IP management, interface status verification, centralized network topology documentation |
+| **4.0 Network Security** | Traffic separation, Layer 3/4 Access Control Lists (ACLs), Wireless WPA2-PSK encryption, Guest Network isolation |
+| **5.0 Network Troubleshooting** | Systematic OSI-model diagnostic methodology (Link layer checks up to Layer 3 ICMP verification) |
 
+---
 
-## Device Configuration Scripts
-### 1. Switch Configuration (SW1-Core)
+## Subnetting & VLSM Architecture Plan
+
+To minimize IP address waste while allowing room for growth, a single **`192.168.1.0/24`** address block was variable-length subnetted into three functional security zones:
+
+| Functional Zone | Segment / Purpose | Subnet & CIDR | Subnet Mask | Usable Host Range | Default Gateway |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Management Zone** | Infrastructure Management (Switch SVI, AP) | `192.168.1.0/27` | `255.255.255.224` | `192.168.1.2 - 192.168.1.30` | `192.168.1.1` |
+| **Operational Zone** | POS Registers & Manager Workstations | `192.168.1.32/27` | `255.255.255.224` | `192.168.1.34 - 192.168.1.62` | `192.168.1.33` |
+| **Public Zone** | Customer Wi-Fi Access | `192.168.1.64/26` | `255.255.255.192` | `192.168.1.66 - 192.168.1.126` | `192.168.1.65` |
+
+### VLSM Design Rationale
+* **Management & Staff (`/27`):** Allocated 30 usable host IPs each, providing sufficient capacity for local store hardware while enforcing tight boundaries.
+* **Guest Network (`/26`):** Allocated 62 usable host IPs to accommodate higher concurrent client density (phones, laptops, tablets) during peak hours.
+
+---
+
+## Architectural Implementation Breakdown
+
+### 1. Layer 2 Segmentation & Trunking Logic
+* **VLAN 10 (Management):** Serves as the native VLAN for network equipment management interfaces.
+* **VLAN 20 (Staff & POS):** Bound strictly to wired switch ports (`Fa0/1 - Fa0/3`) connecting local operational devices.
+* **VLAN 30 (Guest Wi-Fi):** Mapped to the wireless access point interface (`Gi0/2`) to keep customer radio traffic logically separated from the rest of the switch.
+* **802.1Q Trunk Link:** Configured on the uplink interface (`Gi0/1`) to pass tagged frames for VLANs 10, 20, and 30 across a single physical cable to the gateway router.
+
+### 2. Layer 3 Routing & IP Allocation
+* **Inter-VLAN Gateway:** Configured subinterfaces on the router to act as default gateways for each VLAN, providing routing between subnets where permitted.
+* **Dynamic Addressing (DHCP):** Established address pools on the gateway to handle automatic IP assignment for staff and guest devices, excluding static management IPs.
+
+### 3. Security Policy & Traffic Isolation Logic
+A perimeter security policy was implemented at the default gateway using packet filtering rules:
+* **Rule 1 (Deny):** Explicitly blocks all IP traffic from the Guest subnet (`192.168.1.64/26`) to the POS subnet (`192.168.1.32/27`).
+* **Rule 2 (Deny):** Explicitly blocks Guest traffic from reaching infrastructure management interfaces (`192.168.1.0/27`).
+* **Rule 3 (Permit):** Allows Guest traffic to reach any destination outside local internal subnets (e.g., WAN/Internet access).
+
+#### Device Configuration Scripts
+`Note:`Since packet tracer is specific to Cisco and has limitations regarding the settings that can be configured by only using the GUI, some basic understanding of Cisco specific CLI commands are required. 
+<br>
+The underlying theory and objective remains the same but these commands allows you to achieve the required settings within the packet tracer program.
+
+- I set this network up using all the available GUI settings and referred to this list of commands where needed. This has resulted in my being exposed to some basic Cisco-centric configuration commands.
+
+#### 1. Switch Configuration (SW1-Core)
 ```cisco
 enable
 configure terminal
@@ -74,7 +115,7 @@ end
 write memory
 ```
 
-### 2. Router & DHCP Configuration (R1-Gateway)
+#### 2. Router & DHCP Configuration (R1-Gateway)
 ```
 enable
 configure terminal
@@ -124,7 +165,7 @@ ip dhcp pool GUEST_POOL
  dns-server 8.8.8.8
 exit
 ```
-### 3. Security Extended ACL Implementation (R1-Gateway)
+#### 3. Security Extended ACL Implementation (R1-Gateway)
 ```
 ! Extended ACL Definition
 ip access-list extended BLOCK_GUEST_TO_INTERNAL
@@ -144,29 +185,33 @@ end
 write memory
 ```
 
-## Verification & Testing Evidence
-### Test Case 1: VLAN 30 Dynamic Addressing & Default Gateway Connectivity
-- **Goal:** Verify guest devices automatically acquire valid IP configuration and reach their local gateway.
-- **Command:** ping 192.168.1.65 from Guest-Laptop-1
-- **Result:** SUCCESS (4/4 packets received, 0% loss).
 
-### Test Case 2: ACL Enforcement & POS Traffic Isolation
-- **Goal:** Confirm guest wireless clients are explicitly blocked from accessing internal POS infrastructure.
-- **Command:** ping 192.168.1.34 from Guest-Laptop-1
-- **Result:** BLOCKED (Destination Host Unreachable).
 
-### Test Case 3: Access Control List Match Counters
-```
-R1-Gateway# show access-lists BLOCK_GUEST_TO_INTERNAL
-Extended IP access list BLOCK_GUEST_TO_INTERNAL
-    10 deny ip 192.168.1.64 0.0.0.63 192.168.1.32 0.0.0.31 (4 matches)
-    20 deny ip 192.168.1.64 0.0.0.63 192.168.1.0 0.0.0.31
-    30 permit ip 192.168.1.64 0.0.0.63 any (8 matches)
-```
+---
 
-## Lessons Learned & Troubleshooting
-- **Trunk Link Operational Status:** Resolved an inactive trunk status on SW1-Core by executing no shutdown on R1-Gateway interface Gig0/0/1. Catalyst 2960 trunk links require physical layer up/up status on both line endpoints to transition to active 802.1Q trunking mode.
-- **Subnet Boundary Precision:** Enforced accurate wildcard masks (0.0.0.31 for /27, 0.0.0.63 for /26) within ACL statements to prevent unintended blockages across adjacent subnets.
+## Verification & Troubleshooting Log
+
+### Verification Scenario 1: Automated IP Configuration
+* **Objective:** Ensure wireless guest clients receive correct dynamic addressing parameters.
+* **Observation:** Wireless client connected to SSID `CoffeeShop_Guest` successfully leased IP `192.168.1.66` with subnet mask `255.255.255.192` and default gateway `192.168.1.65`.
+
+### Verification Scenario 2: Security Policy Enforcement Test
+* **Objective:** Confirm Guest Wi-Fi devices cannot communicate with operational POS terminals.
+* **Action:** Issued `ping 192.168.1.34` (POS Terminal) from `192.168.1.66` (Guest Laptop).
+* **Result:** **Traffic Blocked** (`Destination Host Unreachable`). Packet filter counters confirmed drops on inbound guest traffic.
+
+### Troubleshooting Case: Physical Layer Link Negotiation
+* **Issue:** Switch trunk link status remained inactive after applying VLAN parameters.
+* **Root Cause:** Gateway router interface defaulted to an administratively shutdown state, preventing physical layer link negotiation.
+* **Resolution:** Brought the physical router interface up (`no shutdown`), enabling the switch to establish the active 802.1Q trunk.
+
+---
+
+## Tools & Technologies Used
+* **Network Simulator:** Cisco Packet Tracer (v8.x)
+* **Protocols & Concepts:** Ethernet, 802.1Q Trunking, IEEE 802.11 Wireless, IPv4 VLSM Subnetting, DHCP, Layer 3/4 Packet Filtering (ACLs), ICMP Diagnostic Tools.
+
+---
 
 ## How to Run This Project
 1. Download and install Cisco Packet Tracer (v8.0 or later).
@@ -176,3 +221,4 @@ git clone https://github.com/your-username/coffee-shop-soho-network.git
 ```
 3. Open the file topology/coffee_shop_SOHO_network.pkt in Packet Tracer.
 4. Open device command prompts to verify DHCP leases, ping paths, and ACL blocks.
+
