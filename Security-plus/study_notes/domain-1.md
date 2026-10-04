@@ -218,3 +218,240 @@ Ask myself these questions in the exam or when unsure:
 
 # Objective 1.2: `Security Concepts`
 
+## 1. CIA Triad (Confidentiality, Integrity, Availability)
+The CIA triad is the foundational framework used to evaluate and implement information security controls.
+```
+
+                  [ Confidentiality ]
+                     /           \
+                    /   Security  \
+                   /    Balance    \
+                  /                 \
+        [ Integrity ] ------------- [ Availability ]
+```
+### Confidentiality
+Ensures that sensitive information is `accessible only to authorized subjects` (users, processes, or systems) and is protected against unauthorized disclosure or eavesdropping.
+
+Underlying Mechanics:
+- **Symmetric Encryption:** Uses a single shared key to encrypt bulk data at rest or in transit.
+- **Asymmetric Encryption:** Uses key pairs (Public Key for encryption, Private Key for decryption) for secure key exchanges and token validation.
+- **Access Control Lists (ACLs):** Enforces permissions at the filesystem or network level (firewall rule sets) using security identifiers (SIDs).
+- **Obfuscation & Steganography:** Hides plain text within other data carriers or transforms code structure without changing execution logic to slow down reverse engineering.
+
+### Integrity
+Guarantees that `data remains accurate, complete, and untampered` with during storage, transit, or processing.
+
+Underlying Mechanics:
+- **Cryptographic Hashing:** 
+    - One-way mathematical algorithms (e.g., SHA-256) generate a fixed-length digest from variable-length input. 
+    - Any single-bit change in the source changes the resulting hash (aka avalanche effect).
+- **Digital Signatures:** 
+    - Combines a cryptographic hash of a payload with the sender’s private key. 
+    - Recipients verify the origin and integrity using the sender's public key.
+- **Message Authentication Codes (MAC / HMAC):** Combines a secret key with a cryptographic hash function to ensure both data integrity and data authenticity over network channels.
+
+### Availability
+Ensures systems, networks, applications, and data remain `accessible and fully operational` for authorized users when needed.
+
+Underlying Mechanics:
+- **Redundancy & Clustering:** High Availability (HA) pairs, active-active or active-passive server clusters running load balancers (e.g., round-robin or least-connections algorithms) to prevent Single Points of Failure (SPOFs).
+- **RAID Storage Configurations:** Disk mirroring (RAID 1) or block-level striping with distributed parity (RAID 5/6) allowing continuous array operation during physical drive failures.
+- **Site Fault Tolerance:** 
+    - Hot sites (near-zero RTO with active replication).
+    - Warm sites (pre-configured hardware requiring data restoration).
+    - Cold sites (power/cooling available without operational hardware).
+- **DDoS Mitigation:** Upstream traffic scrubbing centers, rate limiting, and Anycast network routing to absorb volumetrically saturated link attacks.
+
+## 2. Non-Repudiation
+Non-repudiation provides `indisputable proof of the origin, authenticity, and integrity of a transaction or message`, preventing an entity from denying their involvement in an action.
+
+Underlying Technical Mechanics:
+- **Digital Signatures:** When a user signs a transaction, their local system hashes the document digest and encrypts it using their private key. Because only the user possesses that private key, successful decryption via their public key proves they initiated the transaction.
+- **Asymmetric Key Lifecycle:** Enforced through a Public Key Infrastructure (PKI) where a Certificate Authority (CA) binds a verified user identity to a public/private key pair via x.509 digital certificates.
+- **Centralized Immutable Logging:** Audit logs shipped to Write-Once-Read-Many (WORM) storage or cryptographic log chains (append-only ledgers) tagged with NTP-synchronized timestamps prevent post-event log tampering by administrators or attackers.
+
+## 3. AAA Framework (Authentication, Authorization, Accounting)
+The AAA framework governs `how access is identity-verified, permission-bounded, and audited` across modern enterprise infrastructure.
+```
+  [ Subject / User claiming to be someone ]
+         |
+         |---> 1. AUTHENTICATION ("Are they who they say they are?")  --> Identity Store / Directory
+         |
+         |---> 2. AUTHORIZATION  ("What can you do?") --> Access Matrix / RBAC / ABAC
+         |
+         |---> 3. ACCOUNTING     ("What did you do?") --> Centralized Syslog / SIEM
+```
+### Authenticating `People`
+Human identity verification relies on validating one or more distinct authentication factors:
+
+1. **Something You Know:** Passwords, passphrases, or PINs (vulnerable to brute-force, dictionary attacks, and credential stuffing).
+
+2. **Something You Have:** Hardware security keys (FIDO2/WebAuthn YubiKeys), software time-based one-time password (TOTP) authenticators, smart cards (PIV/CAC), or push notification tokens.
+
+3. **Something You Are:** Inherent biometric attributes measured via sensors (fingerprint readers, facial recognition via infrared depth mapping, retina scanning, or iris scanning).
+
+4. **Somewhere You Are:** Geolocation coordinates bounded by GPS data, IP address ranges, or cellular tower triangulation (geofencing).
+
+5. **Something You Do:** Behavioral attributes like typing dynamics (keystroke dynamics), signature motion signatures, or gait analysis.
+
+**Multi-Factor Authentication (MFA):** Requires two or more distinct categories (e.g., Password + TOTP App). 
+- **Note:** Combining two items from the same factor (e.g., a password and a PIN) is **Dual-Factor**, not MFA.
+
+### Authenticating `Systems`
+Non-human entities (servers, microservices, network gear, IoT devices) authenticate using automated mechanisms:
+
+- **x.509 Digital Certificates (Mutual TLS / mTLS):** Both client and server present TLS certificates signed by a trusted internal CA during the initial TLS handshake to validate mutual identities before establishing an encrypted tunnel.
+
+- **Pre-Shared Keys (PSK):** Static cryptographic strings configured on both endpoints (common in site-to-site IPsec VPNs or WPA3-Personal networks).
+
+- **Kerberos Service Tickets:** Service Principals (SPNs) request Ticket Granting Service (TGS) tickets from a Domain Controller (Key Distribution Center / KDC) to establish machine-to-machine trust without passing raw credentials.
+
+- **API Keys & Managed Identities:** Unique alphanumeric tokens or cloud-native Managed Identities (e.g., AWS IAM Roles, Microsoft Entra Managed Identities) that eliminate hardcoded secrets from source code by pulling temporary credentials from a secure key vault.
+
+### Authorization Models
+Authorization determines what resources an authenticated subject can access and what actions they can perform.
+
+**1. Discretionary Access Control (DAC):**
+- The resource owner has complete discretion to assign permissions to other users.
+- Implementation: NTFS file permissions where a file creator can manually add or remove user permissions via an Access Control Entry (ACE) within the file's Access Control List (ACL).
+
+**2. Mandatory Access Control (MAC):**
+- Access is enforced centrally by the operating system based on hardcoded security labels (e.g., Top Secret, Secret, Unclassified) assigned to objects and clearance levels assigned to subjects.
+- Implementation: SELinux or TrustedBSD environments enforcing clearance-level matching regardless of file creator preferences.
+
+**3. Role-Based Access Control (RBAC):**
+- Access permissions are mapped to specific job roles or group memberships rather than individual user accounts.
+- Implementation: Adding a user to an "Active Directory HR-Finance" security group which automatically inherits read/write access to specific network shares.
+
+**4. Attribute-Based Access Control (ABAC):**
+- Dynamic evaluation of rules using boolean logic over multiple attributes: 
+    - Subject (role, department), 
+    - Resource (sensitivity classification), 
+    - Action (read, write, delete), and 
+    - Environment (time of day, device health, current IP address).
+- Implementation: eXtensible Access Control Markup Language (XACML) or cloud zero-trust conditional access policies.
+
+### Accounting
+Tracks, records, and logs user activity and consumption of network resources for security monitoring, forensic analysis, and auditing compliance.
+
+Underlying Protocols:
+- TACACS+ (Terminal Access Controller Access-Control System Plus): 
+    - Cisco proprietary/RFC standard operating over TCP port 49. 
+    - Encrypts the entire packet payload (header and data) and strictly separates Authentication, Authorization, and Accounting into distinct processes. 
+    - Ideal for network device administration.
+
+- RADIUS (Remote Authentication Dial-In User Service): 
+    - Industry-standard protocol operating over UDP ports 1812 (Auth) and 1813 (Acct). 
+    - Encrypts only the password field within the packet, leaving the rest of the payload unencrypted.
+    - Combines authentication and authorization into a single transaction step.
+
+## 4. Gap Analysis
+A Gap Analysis is a structured assessment process that compares an organization's current baseline security posture against a desired target state, framework benchmark, or regulatory compliance standard (e.g., NIST CSF, ISO 27001, PCI-DSS).
+
+```
++-------------------------+       IDENTIFIED GAPS       +------------------------+
+|  Current State (As-Is)  | --------------------------> | Target State (To-Be)   |
+| Baseline Controls Active|  (Missing Controls, Risk)   | NIST CSF / PCI-DSS     |
++-------------------------+                             +------------------------+
+```
+Steps in performing a gap analysis:
+1. **Define Target Framework:** Select the target compliance framework or baseline standard (e.g., CIS Benchmarks).
+2. **Assess Current Controls (As-Is):** Perform audits, interviews, and vulnerability assessments to document active controls.
+3. **Identify Discrepancies (Gaps):** Detail control deficiencies, missing policies, or misconfigured technical systems where the current state falls short of the target framework.
+4. **Develop Remediation Roadmap:** Prioritize corrective actions based on risk impact, estimate required budget, assign ownership, and establish timeline metrics to close identified gaps.
+
+## 5. Zero Trust Architecture (ZTA)
+Zero Trust is an architectural framework built on the fundamental philosophy of "Never Trust, Always Verify." It assumes that threats exist both outside and inside the network perimeter, eliminating implicit trust based on network location.
+<br>
+
+- ZTA is divided into 2 sections:
+    - Control Plane
+    - Data Plane
+
+### Control Plane
+The Control Plane serves as the centralized brain of the Zero Trust architecture. It gathers telemetry, evaluates access requests against security policies, and dictates access decisions.
+
+- **Adaptive Identity:** Continually calculates identity risk dynamically using real-time signals (e.g., user behavioral baseline deviations, login location shifts, impossible travel alerts, device health compliance checks) rather than relying on a one-time initial login event.
+
+- **Threat Scope Reduction:** Segments the infrastructure using microsegmentation to isolate workloads into minimal granular trust zones, drastically limiting lateral movement if a single endpoint or account is breached.
+
+- **Policy-Driven Access Control:** Evaluates contextual rules using Attribute-Based Access Control (ABAC) dynamically before issuing access grants.
+
+#### Control Plane Components:
+
+- **Policy Engine (PE):** The core decision-making component of the Control Plane. It ingests identity, device, threat intelligence, and resource attributes to make the ultimate decision to grant, deny, or revoke access to a requested resource.
+
+- **Policy Administrator (PA):** The engine execution component that communicates with the Policy Engine and issues commands to the Policy Enforcement Point (PEP) to open or close communication channels in the data plane (e.g., generating short-lived access tokens or dynamically configuring firewall rules).
+
+![alt text](image.png)
+
+### Data Plane
+The Data Plane contains the actual underlying network infrastructure, workload traffic, and resources being accessed. It is explicitly controlled and managed by commands issued from the Control Plane.
+
+- **Implicit Trust Zones:** The shrinking perimeter within a Zero Trust architecture where resources are assumed safe after passing through the Policy Enforcement Point. Modern ZTA reduces implicit trust zones down to individual workloads or microservices.
+
+- **Subject / System:** The client user, endpoint device, service account, or automated software process attempting to access a specific protected resource.
+
+- **Policy Enforcement Point (PEP):** 
+    - The operational gateway or inline agent in the Data Plane that sits directly between the Subject and the Target Resource. 
+    - It intercepts network traffic, enforces decisions received from the Policy Administrator (e.g., un-suspending a session, establishing an encrypted micro-tunnel, or dropping packets), and continually monitors active sessions.
+
+## 6. Physical Security
+Physical security measures protect physical assets, hardware, personnel, and building infrastructure from unauthorized physical access, environmental risks, and physical damage.
+
+### Physical Barriers & Monitoring
+- Bollards: Short, heavy-duty concrete or steel posts anchored into the ground outside facility entrances to block vehicle ramming attempts while permitting foot traffic.
+
+- Access Control Vestibule (Mantrap): A specialized physical entryway configured with two interlocking doors where the second door will not unlock until the first door fully closes and locks. Used to prevent tailgating and enforce single-person authentication via badge readers or biometrics.
+
+- Fencing: Physical perimeter barriers designed to deter scaling and delay unauthorized entry. Fencing heights correlate to security levels (e.g., 8-foot fencing topped with barbed wire or razor tape for high-security perimeters).
+
+- Video Surveillance (CCTV): Closed-circuit television networks utilizing IP cameras, infrared night vision, and PTZ (Pan-Tilt-Zoom) capabilities recorded to a Network Video Recorder (NVR) for real-time monitoring and forensic review.
+
+- Security Guard: Human operational guards stationed at access control points to verify credentials, manage visitor logs, check bags, and conduct physical perimeter patrols.
+
+- Access Badge: RFID, NFC, or magnetic stripe smart cards presented to physical badge readers to actuate electronic door strike locks and log entry timestamps into a physical access control database.
+
+- Lighting: Perimeter and entryway illumination engineered to eliminate dark spots, deter trespassers, and ensure adequate light levels for video surveillance camera capture.
+
+### Sensor Technologies
+Physical detection systems use different sensing modalities to detect physical intrusion:
+
+#### Infrared Sensors (PIR):
+
+Mechanics: Passive Infrared (PIR) sensors monitor ambient blackbody thermal radiation (heat signatures) within their field of view. When a human body moves across the sensor's baseline thermal grid, the sudden shift in infrared energy trips the alarm circuit.
+
+#### Pressure Sensors:
+
+Mechanics: Uses electromechanical switches, piezoelectric mats, or buried strain-gauge cables under flooring or perimeter grounds. Applying physical weight closes the electrical circuit or alters light wave reflection inside fiber-optic cables to trigger an alert.
+
+#### Microwave Sensors:
+
+Mechanics: Active motion detectors that continuously emit high-frequency radio wave pulses (microwave signals) into an enclosed area. The sensor measures the frequency shift of reflected waves returning to the receiver via the Doppler Effect. Movement alters the return frequency and triggers the alarm. Works through light walls/glass, but susceptible to false positives from external movement.
+
+#### Ultrasonic Sensors:
+
+Mechanics: Active sensors that bounce high-frequency sound waves (inaccessible to human hearing) throughout a room. Changes in the reflected acoustic wave interference pattern caused by moving objects trip the sensor circuit.
+
+## 7. Deception and Disruption Technology
+Deception technologies deploy deceptive targets within an enterprise network to lure, identify, divert, and analyze attacker behavior in real time without risking production assets.
+
+```
+[ Production Environment ] ------------> (Attacker Probing)
+       |                                       |
+       v                                       v
+[ Isolated Honeynet ] <--- (Diverted) --- [ Honeypot Node ]
+       |
+       +---> [ Honeyfile (Lure) ] ---> Triggers Alert on Access
+       +---> [ Honeytoken (Token) ] --> Alerts SOC when used externally
+```
+
+- **Honeypot:** A single non-production network node or server intentionally exposed to attract adversaries. It mimics a vulnerable production system (e.g., an unpatched RDP host) to capture attacker tools, techniques, and procedures (TTPs) while triggering immediate high-fidelity SOC alerts upon any connection attempt.
+
+- **Honeynet:** A complex network segment populated with multiple virtualized honeypots designed to simulate an entire enterprise environment (e.g., fake domain controllers, database servers, and workstations) to study complex multi-stage attacks and lateral movement techniques.
+
+- **Honeyfile:** An enticing, fake file placed on a file share or host system (e.g., Passwords_2026.xlsx or Q3_Financials.pdf). The file contains no legitimate corporate data but is configured with auditing scripts or file access alerts that trigger immediately when opened or modified.
+
+- **Honeytoken:** Fake credentials, fake API keys, embedded canary URLs, or dummy database records inserted quietly into production applications or code repositories. If an attacker exfiltrates and attempts to use the honeytoken (e.g., using a fake AWS API key), the target system flags the credential as a honeytoken and instantly alerts security operations.
+
+# 
