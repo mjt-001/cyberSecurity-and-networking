@@ -454,4 +454,276 @@ Deception technologies deploy deceptive targets within an enterprise network to 
 
 - **Honeytoken:** Fake credentials, fake API keys, embedded canary URLs, or dummy database records inserted quietly into production applications or code repositories. If an attacker exfiltrates and attempts to use the honeytoken (e.g., using a fake AWS API key), the target system flags the credential as a honeytoken and instantly alerts security operations.
 
+# Objective 1.3: `Change Management`
+## 1. Overview & Mechanics of Security Change Management
+At its technical core, Change Management is the structured `framework for requesting, evaluating, planning, testing, approving, implementing, and reviewing alterations` to IT infrastructure, applications, and processes.
+
+### Security Implications
+1. **Confidentiality:** Unmanaged updates may inadvertently reset ACLs (Access Control Lists) or weaken encryption standards.
+
+2. **Integrity:** Unauthorized modifications to system files, firewall rules, or system configurations destroy accountability (non-repudiation gets removed - you cannot figure out who made changes) and risk data corruption.
+
+3. **Availability:** Uncoordinated changes account for a majority of unscheduled IT outages (e.g., misconfigured BGP routes or overlapping IP subnets).
+
+### A. Approval Process & The Change Advisory Board (CAB)
+This is the typical workflow behind proposing, evaluating, and authorizing a change.
+
+```
+Start:
++-----------------+      +-------------------+      +------------------+
+|  Request for    | ---> | Risk & Impact     | ---> |  CAB Evaluation  |
+|  Change (RFC)   |      | Assessment        |      |  & Authorization |
++-----------------+      +-------------------+      +------------------+
+                                                              |
+                                                              v
++-----------------+      +-------------------+      +------------------+
+| Post-Implement  | <--- | Execution in      | <--- | Scheduling in a  |
+| Review (PIR)    |      | Production        |      |Maintenance Window|
++-----------------+      +-------------------+      +------------------+
+```
+
+1. **Request for Change (RFC):** Every technical modification begins with a formal RFC document detailing:
+    - Technical description of the change.
+    - Business justification and urgency.
+    - Affected assets, networks, and software.
+    - Proposed schedule, implementation steps, and backout steps.
+
+2. **Change Advisory Board (CAB):** A cross-functional body responsible for reviewing high-impact or non-standard RFCs. 
+    - The CAB assesses operational risk, business continuity conflicts, and resource availability.
+
+3.  **Emergency Change Advisory Board (ECAB):** An expedited subset of the CAB empowered to approve urgent, critical changes (e.g., zero-day emergency patching or active security incident mitigation) outside the standard meeting cadence.
+
+#### Change Classification Types:
+- **Standard Changes:** Low-risk, pre-approved, routine modifications (e.g., monthly OS patch deployment, routine password rotations) following a documented procedure.
+
+- **Normal Changes:** Moderate-to-high-risk modifications that require full CAB review, impact analysis, and approval prior to implementation (e.g., core router replacement, database migration).
+
+- **Emergency Changes:** Critical, time-sensitive changes deployed to resolve an active outage or zero-day vulnerability. Requires post-implementation review (PIR) immediately afterward.
+
+### B. Ownership
+Ownership establishes strict accountability throughout the lifecycle of an asset or change.
+
+- **Asset / System Owner:** Typically a senior business lead or department head accountable for the overall business value, operational risk, and data classification of a specific application or system.
+
+- **Data Owner:** The individual responsible for determining data sensitivity (e.g., PII, PHI, PCI-DSS), setting access guidelines, and authorizing changes to data structures or authorization boundaries.
+
+- **System Custodian / Administrator:** The technical role (e.g., sysadmin, network engineer) responsible for maintaining, patching, and configuring the physical or virtual asset as instructed by the Asset/Data Owner.
+
+`Role in Change Management:` The Asset Owner initiates or authorizes the business requirement for a change and retains ultimate accountability. The Custodian executes the technical change.
+
+### C. Stakeholders
+Stakeholders are all internal and external parties affected by or invested in the outcome of a technical change.
+
+- **Identifying Stakeholders:** 
+    - Includes IT infrastructure teams, 
+    - security operations (SecOps), 
+    - business line managers, 
+    - end-users, 
+    - third-party vendors, and 
+    - compliance officers.
+
+- **Security & Operational Impact:** Failing to notify or include stakeholders can cause cascading failures (e.g., shutting down an API endpoint that an external partner depends on for real-time order processing).
+
+- **Communication Matrix:** Change plans must include structured notification protocols (`Who` needs to be notified, `When` [T-24 hrs, T-1 hr, Post-Change], and `How` [Email, Slack/Teams, Status Page]).
+
+### D. Impact Analysis
+Impact Analysis is the structured evaluation of potential risks, technical dependencies, and operational disruptions associated with a proposed change.
+
+- **Scope Determination:** Identifying exact IP ranges, VLANs, microservices, databases, and user groups affected directly or indirectly.
+
+- **Risk vs. Benefit Analysis:** Evaluating the security risk of implementing the change versus the operational/security risk of not implementing the change (e.g., applying a patch that risks application instability vs. leaving a remote code execution [RCE] vulnerability unpatched).
+
+- **Dependency Mapping:** Analyzing structural IT dependencies using topology diagrams, configuration management databases (CMDBs), and service maps to prevent unexpected downtime (e.g., upgrading a database schema without verifying API client compatibility).
+
+**Risk Metrics:** Assigning quantitative or qualitative risk ratings (Low, Medium, High, Critical) based on system criticality and blast radius.
+
+### E. Test Results
+`No change should ever go straight to production without verified testing.`
+
+- **Sandbox Environment:** A completely isolated, non-production environment (using isolated VLANs, dedicated air-gapped lab hardware, or distinct cloud VPCs) that mirrors the production architecture as closely as possible.
+
+    - The goal is to verify that the security fix or configuration change operates as intended without breaking existing system functionality, performance, or integrations.
+
+    - The RFC must include physical proof of testing—such as system logs, vulnerability scan reports, synthetic performance benchmarks, and user acceptance testing (UAT) sign-offs—before the CAB grants final approval.
+
+### F. Backout Plan (Rollback Strategy)
+A backout plan is a detailed, deterministic set of instructions required to revert a system to its exact pre-change operational state if the implementation fails or creates unforeseen issues.
+
+- **Triggers for Rollback:** Clear, quantifiable thresholds that dictate when execution must stop and rollback must begin (e.g., latency > 200ms, packet loss > 2%, unresolvable errors during post-change verification, or exceeding the allocated maintenance window).
+
+1. `Rollback Technical Mechanisms:`
+    - **System Snapshots:** Reverting virtual machine (VM) state or storage volume snapshots (e.g., AWS EBS snapshots, Hyper-V/VMware checkpoints).
+
+    - **Database Rollbacks:** Utilizing database transaction logs, restore points, or migration rollback scripts (down migrations).
+
+    - **Configuration Backups:** Restoring validated network device configuration files (e.g., Cisco copy startup-config running-config or committing config revisions in Palo Alto/Juniper).
+
+A mandatory prerequisite in every backout plan is taking a *`fresh, full, and verified state backup immediately prior to commencing the change`*.
+
+### G. Maintenance Window
+A Maintenance Window is an explicitly authorized, predetermined time frame during which system modifications, upgrades, and disruptive technical work are permitted to occur.
+
+- Scheduled during periods of lowest business activity (e.g., Sunday 01:00 to 04:00 AM) to minimize blast radius and end-user disruption.
+
+- Change Freeze is an xxtended blackout periods during high-priority business events (e.g., retail Black Friday / Cyber Monday, end-of-quarter financial reconciliations) where all *non-emergency changes are strictly prohibited to maintain maximum stability*.
+
+- Every maintenance window includes a hard cutoff time. If the change execution exceeds this time, the technical team must halt work, execute the backout plan, and restore normal operations before business hours resume.
+
+### H. Standard Operating Procedure (SOP)
+An SOP is a formal, written, step-by-step document that outlines **how** routine technical and operational tasks must be executed.
+
+- It eliminates configuration drift and individual human error by ensuring every engineer executes a procedure identically.
+
+- SOPs incorporate established security baselines (e.g., CIS Benchmarks, STIGs) into standard workflows (such as server provisioning, user onboarding, or firewall rule additions).
+
+- **Document Lifecycle & Governance:** SOPs must be version-controlled, stored in a centralized repository (e.g., internal wiki), periodically audited, and updated whenever changes to systems, policies, or compliance standards occur.
+
+## 2. Technical Implications of Change Management
+When implementing an approved Change Request (RFC), field engineers must account for the granular technical side effects that occur during execution.
+
+### A. Allow Lists / Deny Lists
+Modifying security filters—such as firewall rules, web application firewall (WAF) policies, endpoint protection (EDR/Antivirus), or application control tools (e.g., AppLocker)—is one of the most common change control tasks.
+
+```
++-------------------------------------------------------------------------+
+|                          DEFAULT POLICY RULE                            |
++-------------------------------------------------------------------------+
+| ALLOW LIST MODEL:   Implicit Deny   ---> Explicitly Permit Approved Apps|
+| DENY LIST MODEL:    Implicit Allow  ---> Explicitly Block Known Threats |
++-------------------------------------------------------------------------+
+```
+
+1. `Allow Lists (Application Whitelisting):`
+    - Employs an Implicit Deny security posture. 
+        - Everything is blocked at the system or kernel level unless explicitly defined by path, digital signature, publisher, or cryptographic hash (SHA-256).
+
+    - Change Management Impact: High friction. Updating an enterprise application or pushing a binary patch changes its executable hash. 
+        - If the allow list is not updated simultaneously with the software deployment, execution fails across all endpoint systems.
+
+2. `Deny Lists (Application Blacklisting / Antivirus Signatures):`
+    - Employs an Implicit Allow posture. 
+        - Software runs by default unless its signature, IP, or behavior matches a block entry.
+
+    - Change Management Impact: Updates involve pushing threat intelligence feeds or bad-actor signatures. 
+        - High security risk if omitted (leaves window for known exploits), but lower operational friction than allow lists.
+
+### B. Restricted Activities (Scope Drift & Unauthorized Work)
+A Change Advisory Board (CAB) grants explicit approval only for the exact technical scope detailed in the RFC.
+
+- **Scope Boundaries:** If an RFC grants a 2-hour window to upgrade a printer driver or database schema, engineers are strictly prohibited from performing auxiliary tasks (e.g., updating unrelated network firewall firmware or tweaking local registry keys) simply because the window is open.
+
+- *`Permissible Scope Expansion:`* Scope may expand only if an undocumented, low-level technical requirement (e.g., modifying a local host file or adjusting a dependency config file) is strictly required to successfully fulfill the original change and aligns with existing contingency rules.
+
+- **Security Risk:** "Out-of-scope" tweaks bypass risk assessments, leading to unverified vulnerabilities, broken audit trails, and untracked network outages.
+
+### C. Downtime & Availability Controls
+Downtime directly breaches the Availability pillar of the CIA Triad. Change management controls minimize service disruptions using technical deployment strategies.
+
+- Planned downtime uses maintenance windows communicated via status pages or notification systems. 
+- Unscheduled downtime indicates a failed change or missing dependency.
+
+#### High Availability (HA) Deployment Strategies:
+1. **Blue/Green Deployment:** Two identical production environments exist. 
+    - "Blue" actively serves users, while "Green" receives the update. 
+    - Traffic is seamlessly switched at the router/load-balancer level to "Green". 
+    - If issues arise, traffic flips back to "Blue" instantly, achieving zero downtime.
+
+2. **Canary Deployment:** Rolling out a change to a small subset of servers or users (e.g., 5%) to observe error logs and telemetry before deploying globally.
+
+3. **Failover / Active-Passive Clustering:** Shifting production traffic to secondary passive nodes while the primary node is patched and restarted.
+
+### D. Service Restart vs. Application Restart
+After applying patches, code updates, or configuration changes, components must be restarted to clear state memory, reload binaries into RAM, and bind new parameters.
+
+```
++--------------------------------------------------------------------------+
+|                     RESTART SCOPE & IMPACT LEVEL                         |
++--------------------------------------------------------------------------+
+| Level 1: Application Restart ---> Flushes client app session / process   |
+| Level 2: Service / Daemon    ---> Reloads background service process     |
+| Level 3: Full OS Reboot      ---> Flushes kernel, RAM, hardware hooks    |
++--------------------------------------------------------------------------+
+```
+
+1. **Application Restart:** Closing and reopening a user-facing application process. 
+    - Lowest impact; typically affects only the local user session.
+
+2. **Service Restart (Daemon Reload):** Terminating and restarting a specific background service process (e.g., systemctl restart systemd-resolved or restarting the spooler service in Windows) without rebooting the underlying operating system. 
+    - Fast, localized disruption restricted to that specific service.
+
+3. **Full OS Reboot (Power Cycle):** Tearing down the entire operating system kernel and underlying hardware/hypervisor session. 
+    - Required when applying low-level kernel updates, hypervisor patches, or core OS security updates. 
+    - Highest impact, longest recovery time.
+
+### E. Legacy Applications & Systems
+Legacy systems refer to aging software, hardware, or operating systems that are no longer supported by the original vendor, lack security patches, or run on obsolete codebases.
+
+#### Security & Operational Risks:
+1. Legacy applications often rely on unmaintained libraries or hardcoded configurations. Standard patch management can permanently break their functionality.
+
+2. No zero-day security patches exist for end-of-life (EOL) operating systems (e.g., Windows Server 2008 or older Linux kernels).
+<br><br>
+
+**Compensating Security Controls:** When legacy systems cannot be upgraded or altered:
+- Microsegmentation & Isolation: Moving the legacy asset into an isolated VLAN protected by strict stateful firewall rules and zero-trust policy enforcement.
+
+- Virtual Patching: Implementing Web Application Firewalls (WAF) or Intrusion Prevention Systems (IPS) in front of the application to inspect and block malicious payloads before they hit the unpatched application.
+
+- Documentation & Baselining: Reverse-engineering system dependencies and establishing SOPs so the legacy platform can be supported internally.
+
+### F. Technical Dependencies
+Modern IT environments consist of interconnected architectures where an alteration to one element propagates across other systems.
+
+- Upstream / Downstream Dependencies: Upgrading a centralized database engine (upstream) can immediately break API web services (downstream) if SQL drivers or protocol formats are deprecated.
+
+- Infrastructure Dependencies: Upgrading central management software (e.g., a firewall management console) often requires updating the firmware on every managed firewall edge device first.
+
+**Configuration Management Database (CMDB):** A centralized database that tracks Configuration Items (CIs) and maps their technical dependencies. CMDB dependency trees enable engineers to run pre-change automated impact assessments to detect hidden technical bottlenecks.
+
+## 3. Documentation Standards in Change Management
+A change is incomplete until all associated operational documentation is revised and published. Outdated documentation invalidates incident response plans and leads to future misconfigurations.
+
+### A. Updating Network & System Diagrams
+Any change altering IP addresses, subnet boundaries, routing tables, physical interface connections, or firewall boundaries requires instant updates to logical (VLANs, routing domains) and physical topology maps.
+
+- Data Flow Diagrams (DFDs): If a change alters how sensitive data (PII, PCI-DSS) flows across networks, DFDs must be re-mapped to maintain regulatory compliance and accurate attack-surface visibility.
+
+### B. Updating Policies, Plans & SOPs
+System changes must be reconciled against baseline security policies (e.g., updates to access control models require corresponding IAM policy updates).
+
+- Standard Operating Procedures (SOPs): Step-by-step procedures must be adjusted to reflect new operational workflows, command-line syntax, or interface configurations introduced by the change.
+
+- Disaster Recovery (DR) & Incident Response Plans: If infrastructure changes alter recovery time objectives (RTO), backup storage locations, or failover IP paths, DR playbooks must be updated immediately.
+
+## 4. Version Control & Configuration Management
+Version Control Systems (VCS) provide a structured, traceable, and reversible mechanism for managing source code, Infrastructure-as-Code (IaC), system state configurations, and device scripts.
+
+```
++--------------------------------------------------------------------------+
+|                       VERSION CONTROL REPOSITORY                         |
++--------------------------------------------------------------------------+
+| Main Branch (Production) <--- Pull Request (CAB Approval) <--- Dev Branch|
+|                                                                          |
+| Features:                                                                |
+| 1. Cryptographic Audit Trail (Git Commit Hash, Timestamp, Author)        |
+| 2. Diff Tracking (Line-by-line configuration delta comparison)           |
+| 3. Rollback Mechanics (`git revert` / `git checkout` to stable state)    |
++--------------------------------------------------------------------------+
+```
+
+### A. Mechanics & Security Value
+**Auditability & Non-Repudiation:** Systems like Git track who made a configuration change, what exact lines of code were modified, when the commit occurred, and why (via commit messages referencing the RFC number).
+
+**Diff Tracking:** Enables engineers and security auditors to perform differential analysis ("diffs") between current running states and historical baselines to detect configuration drift or unauthorized changes.
+
+**Rollback Engine:** If an updated router configuration, terraform script, or application build causes production instability, version control allows instant reversion to a known-good commit hash.
+
+### B. Implementation Across Domains
+**Infrastructure-as-Code (IaC):** Declarative configuration files (e.g., Terraform, Ansible, CloudFormation) stored in version-controlled repositories to build and destroy cloud resources repeatably.
+
+**Network Device Configurations:** Automated tools taking daily or post-change snapshots of router/firewall startup-configs and tracking version history in a central VCS.
+
+**Application Code & OS Artifacts**: Managing software updates, registry script tweaks, and container manifests through versioning pipelines tied directly to automated Change Management CI/CD triggers.
+
 # 
+
