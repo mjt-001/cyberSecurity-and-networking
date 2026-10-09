@@ -759,3 +759,212 @@ Missing logs (or gaps in event log sequences) occur when system log files, secur
 ---
 ---
 
+## Objective 2.5: `Enterprise Mitigation Techniques`
+### Overview & Mechanics
+Mitigation techniques are defense-in-depth controls, policies, and architectural strategies implemented across an enterprise to reduce risk, shrink the attack surface, and limit the blast radius of a security breach. Rather than relying on a single defensive line, mitigation techniques safeguard systems before, during, and after an attack. Understanding these techniques enables security engineers to build resilient infrastructure that prevents unauthorized access, maintains system integrity, and ensures business continuity.
+
+### Security Implications
+1. **Confidentiality:** Mitigation controls like encryption, permissions, and least privilege restrict access to sensitive data, ensuring that only authorized entities can view confidential records.
+2. **Integrity:** Configuration enforcement, patching, and application allow-listing prevent unauthorized code execution and system tampering, preserving the trustworthiness of host configurations and files.
+3. **Availability:** Network segmentation, isolation, monitoring, and proper decommissioning prevent the lateral spread of ransomware, limit system outages, and ensure ongoing operational uptime.
+
+### A. Segmentation
+
+Segmentation involves dividing an enterprise network into distinct, isolated sub-networks (segments) to control traffic flow, enforce security boundaries, and limit lateral movement by attackers.
+
+*   **Mechanics & Implementation:**
+    *   **Virtual Local Area Networks (VLANs):** Grouping network devices logically at Layer 2 regardless of physical location, separated using IEEE 802.1Q tagging.
+    *   **Firewalls & Microsegmentation:** Placing internal firewalls or software-defined networking (SDN) controls between segments (e.g., separating PCI-DSS cardholder data environments, guest Wi-Fi, and corporate servers) to inspect traffic.
+    *   **Air-Gapping:** Physically separating critical networks (e.g., Industrial Control Systems [ICS/SCADA]) from external or non-secure networks with no physical or wireless connections.
+*   **Purpose:** Restricts an attacker's ability to move laterally across the network if a single host or segment is compromised.
+
+---
+
+### B. Access Control
+
+Access control mechanisms verify user identity and enforce rules that govern which entities (users, processes, devices) can interact with specific enterprise resources.
+
+*   **Access Control List (ACL):**
+    *   Sequential rules applied on routers, switches, and firewalls that permit or deny network traffic based on parameters such as Source IP, Destination IP, Port, and Protocol.
+    *   *Implicit Deny:* The final default rule at the end of an ACL that drops all traffic not explicitly permitted by prior rules.
+*   **Permissions:**
+    *   Object-level access rights configured on operating systems, file systems (e.g., NTFS, ext4), and cloud resources.
+    *   **Common Permission Types:** Read, Write, Execute, Modify, Full Control. Assigning permissions to roles/groups rather than individual users streamlines administrative overhead and auditability.
+*   **Purpose:** Ensures strict enforcement of access boundaries and prevents unauthorized reading, altering, or executing of files and systems.
+
+---
+
+### C. Application Allow List
+
+An application allow list (formerly known as whitelisting) is an endpoint security control that specifies an explicit list of authorized software applications and scripts permitted to execute on a system.
+
+*   **Mechanics & Enforcement:**
+    *   Enforced via operating system controls such as Microsoft AppLocker, Windows Defender Application Control (WDAC), or third-party Endpoint Protection Platforms (EPP).
+    *   **Rule Attributes:** Approves applications based on Cryptographic Hash, Digital Signature/Publisher Certificate, File Path, or File Attributes.
+    *   **Implicit Block:** Any application, executable (`.exe`), installer (`.msi`), or script (`.bat`, `.ps1`) not explicitly on the allow list is automatically blocked from running.
+*   **Purpose:** Prevents the execution of unauthorized software, unapproved shadow IT tools, and malicious payloads (including malware, ransomware, and zero-day exploits).
+
+---
+
+### D. Isolation
+
+Isolation involves disconnecting or sandboxing a system, process, environment, or network segment from the rest of the enterprise network to contain threats and prevent contamination.
+
+*   **Mechanics & Levels:**
+    *   **Host Isolation:** EDR platforms or administrators automatically disconnect an infected host's network interfaces (except for a secure management channel) upon detecting malware.
+    *   **Virtual Machine / Sandbox Isolation:** Running suspicious or untrusted processes within isolated environments (e.g., containerization or dedicated virtual machines) so malicious actions cannot affect the underlying host operating system.
+    *   **Browser Isolation:** Executing web sessions inside an isolated virtual container or cloud instance to protect the local device from web-based exploits and drive-by downloads.
+*   **Purpose:** Stops live security incidents from spreading laterally to adjacent systems while allowing security teams to analyze or remediate the infected target.
+
+---
+
+### E. Patching
+
+Patching is the process of applying software updates, hotfixes, and vendor-supplied fixes to operating systems, firmware, and applications to resolve known software vulnerabilities and functional bugs.
+
+*   **Mechanics & Patch Management Cycle:**
+    *   **Vulnerability Identification:** Monitoring vendor advisory feeds and scanning enterprise assets for missing security patches.
+    *   **Testing & Staging:** Testing security patches in non-production environments to ensure compatibility and prevent operational disruptions before enterprise rollout.
+    *   **Automated Deployment:** Utilizing centralized patch management tools (e.g., WSUS, SCCM, Intune) to schedule and enforce security updates across endpoints and servers within defined maintenance windows.
+*   **Purpose:** Eliminates known software vulnerabilities (CVEs), shrinking the system's attack surface and preventing attackers from exploiting published weaknesses.
+
+---
+
+### F. Encryption
+
+Encryption uses mathematical cryptographic algorithms to transform cleartext data into unreadable ciphertext, ensuring that only entities possessing the correct decryption key can access the underlying information.
+
+*   **Data States & Implementation:**
+    *   **Data at Rest:** Protecting stored data on hard drives, databases, and mobile devices using Full Disk Encryption (FDE like BitLocker or FileVault) or file/database-level encryption (AES-256).
+    *   **Data in Transit:** Safeguard traffic moving across wired or wireless networks using transport security protocols (TLS 1.3, IPsec VPNs, SSH).
+    *   **Data in Use:** Protecting active data held in system memory (RAM) or CPU caches using confidential computing and enclave technologies.
+*   **Purpose:** Preserves data confidentiality and privacy even if storage media is stolen, network traffic is intercepted, or database files are leaked.
+
+---
+
+### G. Monitoring
+
+Monitoring is the continuous collection, correlation, and analysis of system logs, network traffic, endpoint behaviors, and operational metrics across the enterprise infrastructure.
+
+*   **Mechanics & Tooling:**
+    *   **SIEM (Security Information and Event Management):** Centralizes log ingestion from firewalls, servers, domain controllers, and applications to correlate events and alert on suspicious anomalies in real time.
+    *   **EDR/XDR (Endpoint/Extended Detection and Response):** Provides continuous behavioral monitoring on endpoints to identify fileless attacks, process injection, and suspicious commands.
+    *   **SOAR (Security Orchestration, Automation, and Response):** Automates responses to monitoring alerts (e.g., automatically isolating a host upon high-confidence alert detection).
+*   **Purpose:** Delivers real-time visibility across the enterprise, reduces mean time to detect (MTTD), and identifies security incidents before major operational damage occurs.
+
+---
+
+### H. Least Privilege
+
+The Principle of Least Privilege (PoLP) dictates that users, software applications, system processes, and service accounts must be granted only the minimum level of access rights, permissions, and time-bound privileges necessary to perform their legitimate duties.
+
+*   **Mechanics & Implementation:**
+    *   Removing default administrative privileges from standard user endpoints.
+    *   **Privileged Access Management (PAM):** Utilizing specialized tools to vault administrative accounts, enforce Just-In-Time (JIT) privilege elevation, and log administrative sessions.
+    *   **Service Accounts:** Restricting backend service accounts so they cannot log in interactively and can only access specific required database resources.
+*   **Purpose:** Limits the potential blast radius if a user account or service is compromised, preventing low-privilege breaches from escalating into full domain compromises.
+
+---
+
+### I. Configuration Enforcement
+
+Configuration enforcement uses centralized management policies and automated compliance tools to ensure that all enterprise systems maintain standardized, secure baseline configurations over time.
+
+*   **Mechanics & Baseline Drift Control:**
+    *   **Security Baselines:** Applying hardened configuration settings (such as CIS Benchmarks or DISA STIGs) across operating systems and network devices.
+    *   **Group Policy Objects (GPO) / MDM:** Enforcing settings like disabling USB ports, requiring strong password policies, disabling legacy protocols (e.g., SMBv1), and enforcing local firewalls.
+    *   **Infrastructure as Code (IaC) & Configuration Management:** Utilizing tools like Ansible, Puppet, or Terraform to automatically detect and correct "configuration drift" back to standard secure states.
+*   **Purpose:** Prevents security misconfigurations, reduces system vulnerabilities, and maintains a consistent, hardened baseline across all IT assets.
+
+---
+
+### J. Decommissioning
+
+Decommissioning is the structured process of safely retiring, sanitizing, and disposing of enterprise hardware, software, user accounts, and data assets at the end of their operational lifecycle.
+
+*   **Mechanics & Lifecycle Steps:**
+    *   **Account Deprovisioning:** Automatically revoking user accounts, access tokens, and privileges in identity systems (Active Directory/Entra ID) immediately upon employee termination.
+    *   **Data Sanitization & Sanitization Standards:** Sanitizing physical media before disposal using methods such as Clearing (overwriting), Purging/Degaussing (magnetic wiping), or Physical Destruction (shredding, incinerating drives according to NIST SP 800-88 standards).
+    *   **Asset Offboarding:** Removing retired hardware from enterprise monitoring systems, inventory databases, and license agreements.
+*   **Purpose:** Prevents data leakage, unauthorized access via orphaned user accounts, and exposure of sensitive corporate information on discarded physical media.
+
+---
+
+### Hardening Techniques: Overview & Mechanics
+System hardening is the process of securing a host system or network appliance by reducing its surface of vulnerability (attack surface). Unhardened operating systems and devices often ship with default settings optimized for ease of use and maximum compatibility rather than security—including enabled default services, open common ports, unencrypted communication channels, and default administrative credentials. Hardening applies strict security controls across endpoints, servers, and network devices to ensure that systems operate in a secure, minimized state.
+
+#### Security Implications
+1. **Confidentiality:** Implementing full-disk and transport encryption prevents unauthorized entities from sniffing cleartext data or extracting unencrypted files directly from physical storage media.
+2. **Integrity:** Endpoint protection tools, host-based intrusion prevention systems (HIPS), and removing unnecessary software prevent unauthorized modification of operational files, operating system kernels, and administrative configurations.
+3. **Availability:** Host-based firewalls, closing unneeded ports, and changing default credentials stop external attackers from gaining unauthorized remote access, preventing malicious disruptions, system compromises, and denial-of-service events.
+
+---
+
+#### A. Encryption
+
+Encryption at the host level safeguards stored data (Data at Rest) and transmitted traffic (Data in Transit) by converting unencrypted cleartext into unreadable ciphertext using cryptographic algorithms.
+
+*   **Data at Rest (Full Disk Encryption - FDE):**
+    *   **Mechanics:** Software or hardware mechanisms (e.g., Microsoft BitLocker, Apple FileVault, LUKS) encrypt entire storage volumes, including system files, swap files, and user directories.
+    *   **Hardware Root of Trust:** Often tied to a **Trusted Platform Module (TPM)** chip—a dedicated cryptoprocessor embedded on the motherboard that securely stores encryption keys and validates system boot integrity (Measured Boot).
+    *   **Protection:** Ensures that if a physical host, laptop, or hard drive is stolen, the stored data remains completely unreadable without the proper authentication key or recovery passphrase.
+*   **Data in Transit:**
+    *   Enforcing secure transport protocols (e.g., HTTPS/TLS 1.3, SSH, IPsec) on host communications to prevent eavesdropping and credential sniffing across the network interface.
+
+#### B. Installation of Endpoint Protection
+
+Endpoint protection refers to deploying centralized, multi-layered security software agents onto endpoints (workstations, servers, mobile devices) to detect, block, and respond to malicious software and behavioral threats.
+
+*   **Mechanics & Key Capabilities:**
+    *   **Antivirus / Anti-Malware (Legacy):** Relies on signature-based detection to compare local files against known malware definition databases.
+    *   **Endpoint Detection and Response (EDR):** Modern endpoint security that goes beyond static signatures by using behavioral analysis, machine learning, and continuous process monitoring to detect fileless attacks, zero-day exploits, and malicious script execution.
+    *   **Centralized Visibility & Telemetry:** Sends live endpoint telemetry (running processes, network connections, memory modifications) to a central management console or SIEM for automated incident response and threat hunting.
+
+#### C. Host-Based Firewall
+
+A host-based firewall is a software utility running locally on an individual operating system that filters inbound and outbound network traffic based on configured security rules.
+
+*   **Mechanics & Filtering:**
+    *   Inspects network packets at the local network interface card (NIC) level (e.g., Windows Defender Firewall, `iptables`/`nftables` on Linux).
+    *   **Rule Parameters:** Blocks or permits traffic based on IP address, port number, transport protocol (TCP/UDP), direction (inbound/outbound), and specific application executables.
+    *   **Perimeter vs. Host:** Unlike network firewalls that protect an entire network segment, a host-based firewall protects the specific endpoint wherever it resides—even when connected to untrusted public Wi-Fi networks.
+
+#### D. Host-Based Intrusion Prevention System (HIPS)
+
+A Host-Based Intrusion Prevention System (HIPS) is an active security application installed on a host system that monitors system activity, network traffic, and system calls to inline-block malicious behavior in real time.
+
+*   **Mechanics & Monitoring Scope:**
+    *   Operates deep within the operating system, inspecting network traffic, system memory, file system modifications, and registry changes.
+    *   **Behavioral & Heuristic Detection:** Identifies malicious activity by detecting deviations from normal system baselines (e.g., an unauthorized process attempting to inject code into `lsass.exe` or modify system boot sectors).
+    *   **Active Prevention:** Unlike a passive Intrusion Detection System (HIDS) that only logs and alerts, a HIPS actively **intervenes and blocks** the suspicious action in real time (e.g., terminating the process, dropping the network packet, or denying file write access).
+
+#### E. Disabling Ports and Protocols
+
+Disabling unneeded network ports and services involves shutting down unnecessary background network daemons and blocking unused network communication pathways to shrink the host's attack surface.
+
+*   **Mechanics & Execution:**
+    *   **Closing Open Ports:** Identifying active listening ports using tools like `netstat` or `nmap` and stopping the associated underlying services.
+    *   **Disabling Legacy/Insecure Protocols:** Turning off insecure, cleartext, or outdated protocols across the operating system. Examples include disabling SMBv1, Telnet (port 23), FTP (port 21), HTTP (port 80), and legacy SSL/TLS versions.
+    *   **Replacing with Secure Alternatives:** Mandatory transition to encrypted transport channels—such as replacing Telnet/FTP with SSH (port 22) / SFTP (port 22) and replacing HTTP with HTTPS (port 443).
+
+#### F. Default Password Changes
+
+Default password changing is the mandatory practice of modifying factory-set administrative credentials on operating systems, network devices, applications, and IoT hardware prior to deploying them into a production environment.
+
+*   **Mechanics & Vulnerability:**
+    *   Manufacturers ship devices (routers, switches, cameras, software suites) with standardized default usernames and passwords (e.g., `admin/admin`, `root/toor`, `administrator/password`).
+    *   These default credentials are publicly documented in vendor manuals and searchable online databases (e.g., default password lists used by automated scanner bots).
+*   **Hardening Requirement:**
+    *   Enforcing immediate credential updates upon initial configuration.
+    *   Replacing default credentials with unique, complex passphrases or enrolling devices into centralized authentication systems (e.g., TACACS+, RADIUS, Active Directory).
+
+#### G. Removal of Unnecessary Software
+
+Removing unnecessary software involves uninstalling non-essential applications, pre-installed bloatware, unused utilities, and unnecessary system components from an enterprise host.
+
+*   **Mechanics & Attack Surface Reduction:**
+    *   **Attack Surface Reduction:** Every software program installed on a system adds lines of code that may contain unpatched vulnerabilities, bugs, or security flaws.
+    *   **Eliminating Unused Services:** Uninstalling software removes background services, helper daemons, autorun registry keys, and associated open ports that adversaries could exploit.
+    *   **Operational Efficiency:** Simplifies system patch management requirements, conserves disk/memory resources, and ensures hosts run only vendor-approved corporate software applications.
+
+---
