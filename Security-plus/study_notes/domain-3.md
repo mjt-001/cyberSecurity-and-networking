@@ -158,3 +158,94 @@ When designing secure enterprise networks, cloud environments, and hybrid infras
 12. **Compute**
     - **Mechanics:** The processing power (CPU cores, RAM, GPU capacity) available to run workloads, cryptographic operations, virtualization layers, and security analytics.
     - **Security Impact:** Insufficient compute resources can prevent the execution of heavy security controls like full-disk encryption, complex multi-factor authentication, deep packet inspection, and EDR agents.
+
+---
+---
+
+## Objective 3.2: Secure Enterprise Infrastructure
+
+### Overview & Mechanics
+Securing enterprise infrastructure requires a comprehensive approach to network architecture, traffic inspection, access control, and device placement. Security professionals must understand how to architect resilient networks, deploy appropriate security appliances and firewalls, implement robust port security, establish secure remote communications, and select effective technical and operational controls to mitigate modern threat vectors.
+
+### 1. Infrastructure Considerations
+
+#### Device Placement
+- **Mechanics:** Strategic positioning of network hardware and security devices (firewalls, IDS/IPS, load balancers, jump servers) relative to network boundaries and data flows.
+- **Security Impact:** Placing critical assets behind multiple layers of defense (defense-in-depth) ensures that a perimeter breach does not result in total compromise. For example, public-facing web servers reside in a Demilitarized Zone (DMZ), while backend databases are isolated in internal secure zones separated by internal firewalls.
+
+#### Security Zones
+- **Mechanics:** Partitioning a network into distinct trust levels based on data sensitivity and access requirements (e.g., Intranet, Extranet, DMZ, Guest Wi-Fi, Restricted/Management Zones).
+- **Security Impact:** Restricts lateral movement. Traffic moving between zones must pass through security gates (firewalls, gateways) enforcing strict access control lists (ACLs) and inspection policies.
+
+#### Attack Surface
+- **Mechanics:** The total sum of all vulnerabilities, entry points, and exposed assets (hardware, software, network ports, user credentials) that an attacker can exploit.
+- **Security Impact:** Minimizing the attack surface involves disabling unnecessary services, closing unused ports, removing default accounts, hardening configurations, and implementing micro-segmentation.
+
+#### Connectivity
+- **Mechanics:** The physical and logical pathways linking devices, users, remote offices, and cloud environments (wired Ethernet, wireless, cellular, satellite, dedicated leased lines).
+- **Security Impact:** Each connectivity type introduces unique risks. Wireless and remote connections require robust encryption and authentication, while dedicated physical links require physical tampering protections.
+
+#### Failure Modes
+- **Fail-Open:** When a security device or system fails, it defaults to allowing traffic to pass through, prioritizing operational availability over security. Used in life-safety systems or high-availability networks where a total outage is more dangerous than a temporary security blind spot.
+- **Fail-Closed (Fail-Secure):** When a security device or system fails, it blocks all traffic and shuts down access, prioritizing security over availability. Used in high-security environments, cryptographic key storage, and secure facility access controls.
+
+#### Device Attributes
+- **Active vs. Passive:** 
+  - *Active Devices:* Interactively process, modify, or block traffic (e.g., inline IPS, firewalls, active proxies).
+  - *Passive Devices:* Monitor, log, and analyze traffic without altering or blocking data streams (e.g., traditional IDS, packet capture sensors).
+- **Inline vs. Tap/Monitor:** 
+  - *Inline:* Placed directly in the primary path of network traffic; all packets must pass through the device. Enables active threat mitigation and packet dropping.
+  - *Tap / Monitor (SPAN/Mirror Port):* Receives a physical copy or mirrored stream of network traffic out-of-band. Does not impact network performance or latency, but cannot actively block traffic in real time.
+
+#### Network Appliances
+- **Jump Server:** A hardened, highly monitored intermediary system used to access and manage devices in a separate, high-security zone (often serving as a bastion host).
+- **Proxy Server:** An intermediary device that handles client requests on behalf of other servers. 
+  - *Forward Proxy:* Sits in front of clients to control outbound access to the internet, filter content, and cache web pages.
+  - *Reverse Proxy:* Sits in front of backend web servers to handle incoming client requests, provide SSL/TLS offloading, load balancing, and protect servers from direct exposure.
+- **Intrusion Detection System (IDS) / Intrusion Prevention System (IPS):**
+  - *IDS:* Passive or active monitoring tool that inspects traffic and generates alerts upon detecting malicious signatures or anomalous behavior.
+  - *IPS:* Inline security appliance that detects and actively drops or resets malicious connections in real-time.
+- **Load Balancer:** Distributes incoming network and application traffic across multiple backend servers to ensure high availability, fault tolerance, and optimized resource utilization. Often includes health checks and SSL termination.
+- **Sensors:** Hardware or software probes deployed across network segments to capture telemetry, packet data, and security events for ingestion into a SIEM.
+
+#### Port Security
+- **802.1X:** An IEEE standard for port-based Network Access Control (PNAC). It authenticating devices attached to a LAN or WLAN port before making connection access available, blocking unauthorized devices at the switch port level.
+- **Extensible Authentication Protocol (EAP):** An authentication framework used alongside 802.1X that supports multiple authentication methods (e.g., EAP-TLS, EAP-MSCHAPv2, PEAP) utilizing certificates, tokens, or credentials.
+
+#### Firewall Types
+- **Layer 4 Firewall (Stateful Inspection):** Evaluates traffic based on IP addresses, ports, and connection state (TCP handshake tracking), allowing or denying packets based on pre-configured rules.
+- **Layer 7 Firewall (Application-Aware):** Deep Packet Inspection (DPI) firewall that analyzes the actual payload and application protocol headers (HTTP, FTP, DNS) to identify specific applications regardless of port numbers.
+- **Web Application Firewall (WAF):** Specialized Layer 7 firewall designed to protect web applications by inspecting HTTP/HTTPS traffic and blocking common web vulnerabilities like SQL injection, cross-site scripting (XSS), and parameter tampering.
+- **Unified Threat Management (UTM):** All-in-one security appliance combining firewall, IDS/IPS, anti-malware, content filtering, and VPN capabilities into a single management platform.
+- **Next-Generation Firewall (NGFW):** Advanced firewall integrating traditional stateful inspection with Layer 7 application awareness, integrated threat intelligence, SSL/TLS decryption, sandboxing, and inline IDS/IPS capabilities.
+
+### 2. Secure Communication & Access
+
+#### Virtual Private Network (VPN)
+- **Mechanics:** Creates an encrypted virtual tunnel over an unencrypted public network (the internet), allowing remote users or branch offices to connect securely to an internal enterprise network.
+
+#### Remote Access Tunneling Protocols
+- **Transport Layer Security (TLS):** Secures web-based remote access (TLS/SSL VPNs, HTTPS) by establishing an encrypted session at the transport layer, verifying server and client identities using certificates.
+- **Internet Protocol Security (IPSec):** Operates at the network layer (Layer 3) to secure communications across IP networks. Operates in two modes:
+  - *Transport Mode:* Encrypts only the payload of the IP packet; header remains unchanged. Used primarily for host-to-host communications.
+  - *Tunnel Mode:* Encrypts both the payload and the original IP header, encapsulating it within a new IP packet. Used for site-to-site VPNs. Utilizes AH (Authentication Header) for integrity and ESP (Encapsulating Security Payload) for confidentiality and integrity.
+
+#### Software-Defined Wide Area Network (SD-WAN)
+- **Mechanics:** An overlay software architecture that virtualizes WAN infrastructure, decoupling network control and management planes from underlying physical transport mechanisms (MPLS, broadband, LTE).
+- **Security Implications:** Centralized policy management, dynamic path selection based on traffic priority, and integrated security features (such as direct secure internet breakout and encrypted overlays).
+
+#### Secure Access Service Edge (SASE)
+- **Mechanics:** An emerging cloud-native architecture that converges software-defined wide area networking (SD-WAN) capabilities with comprehensive cloud-delivered security services (such as SWG, CASB, ZTNA, and FWaaS) into a single unified service model.
+- **Security Implications:** Enforces consistent zero-trust access policies regardless of whether users are connecting from corporate headquarters, branch offices, or remote locations.
+
+### 3. Selection of Effective Controls
+
+- **Mechanics:** The systematic process of evaluating organizational risks, compliance mandates, operational constraints, and technical feasibility to select the most appropriate security controls.
+- **Control Categories:**
+  - *Technical Controls:* Implemented using technology (firewalls, encryption, ACLs, IDSs, MFA).
+  - *Operational (Administrative) Controls:* Implemented through human policies, procedures, training, and operational guidelines (incident response plans, patch management schedules).
+  - *Physical Controls:* Environmental and physical safeguards (guards, mantraps, biometric locks, CCTV).
+- **Selection Criteria:** Effectiveness, cost, implementation speed, scalability, impact on performance, and compatibility with legacy systems. Security architects must balance these factors to achieve an optimal defense-in-depth posture.
+
+---
+---
